@@ -1,0 +1,137 @@
+---
+title: "DS6372_Project2"
+author: "Samuel Onalaja"
+date: "11/11/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Library
+
+```{r}
+library(tidyverse)
+library(corrplot)
+library(mlbench)
+library(caret)
+library(skimr)
+library(mice)
+library(purrr)
+library(ggplot2)
+library(ggthemes)
+library(cowplot)
+library(class)
+library(e1071)
+library(grid)
+library(tidyr)
+library(stringr)
+library(naniar)
+library(car)
+```
+
+Read in datafile
+```{r}
+
+library(readr)
+bank_additional_full <- read_delim("data/bank-additional-full.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+head(bank_additional_full)
+View(bank_additional_full)
+```
+
+Data Summary statistics
+
+Notice all categorical variables are in charactor type so we have to convert all to factor.
+```{r}
+summary(bank_additional_full)
+dim(bank_additional_full)
+names(bank_additional_full)
+str(bank_additional_full)
+
+```
+
+
+Convert all character type variable to factor
+```{r}
+
+for (i in seq_along(bank_additional_full)){
+    if(is.character(bank_additional_full[[i]])){
+        bank_additional_full[[i]]=as.factor(bank_additional_full[[i]])   
+    }
+}
+
+str(bank_additional_full)
+```
+
+Addressing missing value
+
+The data set is completely observed, No missing value
+```{r}
+
+vis_miss(bank_additional_full) #This funtion is from package naniar and very effective for visualizing missing values
+md.pattern(bank_additional_full) #This function also address the pattern of a missing value, its from the The MICE package (stands for Multiple Imputation by Chained Equations)
+
+n_cols = dim(bank_additional_full)[2]
+for (i in 1:n_cols)
+{
+  print(c(colnames(bank_additional_full[i]), sum(is.na(bank_additional_full[i]))))
+}
+
+```
+
+
+
+EDA
+
+Notice some errors while trying to get a correlation so it was discovered that the record "No and Yes" in the "y" variable needs to be converted to "0" and "1"
+
+```{r}
+
+
+bank <- bank_additional_full %>%
+  mutate(y = ifelse(y=="yes", 1, 0))
+
+bank$y <- as.factor(bank$y)
+
+
+dim(bank)
+str(bank)
+
+
+
+# This table shows the correlation between the numerical variables
+
+corrdfTraintable <- bank %>% keep(is.numeric) %>% na.omit %>% cor %>% view
+bank %>% keep(is.numeric) %>% na.omit %>% cor %>% corrplot("upper", addCoef.col = "black", number.digits = 2, number.cex = 0.5, method="shade", order="hclust", tl.srt=45, tl.cex = 0.8)
+view(corrdfTraintable)
+
+
+#checking for correlation Numerical variable vs response
+
+Attr <- "y"
+# Name explanatory variable
+ExplVar<- bank%>% keep(is.numeric) %>% colnames
+# Create function
+PlotFunc <- function(df, explanatory, response) {
+  ggplot(data = df) + geom_density(aes_string(x = explanatory), alpha = 0.5) + xlab(explanatory) + ylab("subscribed")
+}
+  # Density plot
+PlotFunc(bank, explanatory =  "age", response = "y")
+#  Create plot list for plot_grid function to reference
+PlotList <- lapply(ExplVar, function(x) PlotFunc(bank, x, y))
+#  Grid of all categorical variables plotted against Attrition
+plot_grid(plotlist = PlotList)
+
+
+bank.model<-lm(y~.,data=bank)  
+vif(bank.model)
+
+#Check for alias coeffiecient and drop them
+ld.vars <- attributes(alias(bank.model)$Complete)$dimnames[[1]]  
+ld.vars 
+```
+
+
