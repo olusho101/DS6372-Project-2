@@ -31,6 +31,7 @@ library(tidyr)
 library(stringr)
 library(naniar)
 library(car)
+
 ```
 
 Read in datafile
@@ -88,6 +89,8 @@ EDA
 
 Notice some errors while trying to get a correlation so it was discovered that the record "No and Yes" in the "y" variable needs to be converted to "0" and "1"
 
+Notice how the respose variable (y) is skewed towards "0" which is no at over 89%
+
 ```{r}
 
 
@@ -96,17 +99,93 @@ bank <- bank_additional_full %>%
 
 bank$y <- as.factor(bank$y)
 
+table(bank$y)
+prop.table(table(bank$y))
 
 dim(bank)
 str(bank)
 
+#Observe data distribution of the response variable
+
+table(bank$y)
+prop.table(table(bank$y))
 
 
-# This table shows the correlation between the numerical variables
+## Check of the range of some of these continuous variables with histograms
+ 
+#Distribution of duration
 
-corrdfTraintable <- bank %>% keep(is.numeric) %>% na.omit %>% cor %>% view
-bank %>% keep(is.numeric) %>% na.omit %>% cor %>% corrplot("upper", addCoef.col = "black", number.digits = 2, number.cex = 0.5, method="shade", order="hclust", tl.srt=45, tl.cex = 0.8)
-view(corrdfTraintable)
+ggplot(data=bank,aes(x=duration)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$duration, na.rm = TRUE), sd = sd(bank$duration, na.rm = TRUE))) +
+  labs(x = "duration", y = "Count", title = "Duration distribution") +   theme_economist()
+
+summary(bank$duration)
+
+#Campaign distribution
+#Campaign is rightly skewed and contains some few outliers
+
+ggplot(data=bank,aes(x=campaign)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$campaign, na.rm = TRUE), sd = sd(bank$campaign, na.rm = TRUE))) +
+  labs(x = "campaign", y = "Count", title = "Campaign distribution") +   theme_economist()
+
+#checking out the distribution by the response variable
+#Distribution seems to be normally distributed
+ggplot(bank) + geom_histogram(aes(x = age), binwidth = 0.1, col = "white") + facet_grid(y~., scales = "free") + scale_x_log10() +theme_bw()
+
+summary(bank$campaign)
+
+bank$lgcampaign = log(bank$campaign)
+
+#Pdays distribution
+
+ggplot(data=bank,aes(x=bank$pdays)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$campaign, na.rm = TRUE), sd = sd(bank$pdays, na.rm = TRUE))) +
+  labs(x = "pdays", y = "Count", title = "Pdays distribution") +   theme_economist()
+
+
+#Previous distribution
+
+ggplot(data=bank,aes(x=bank$previous)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$previous, na.rm = TRUE), sd = sd(bank$previous, na.rm = TRUE))) +
+  labs(x = "previous", y = "Count", title = "Previous distribution") +   theme_economist()
+
+
+#Emp.var.rate distribution
+
+ggplot(data=bank,aes(x=bank$emp.var.rate)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$emp.var.rate, na.rm = TRUE), sd = sd(bank$emp.var.rate, na.rm = TRUE))) +
+  labs(x = "emp.var.rate", y = "Count", title = "Emp.var.rate distribution") +   theme_economist()
+
+
+#Cons.price.idx distribution
+
+ggplot(data=bank,aes(x=bank$cons.price.idx)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$emp.var.rate, na.rm = TRUE), sd = sd(bank$cons.price.idx, na.rm = TRUE))) +
+  labs(x = "cons.price.idx", y = "Count", title = "Cons.price.idx distribution") +   theme_economist()
+
+
+#Cons.conf.idx distribution
+
+ggplot(data=bank,aes(x=bank$cons.conf.idx)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$cons.conf.idx, na.rm = TRUE), sd = sd(bank$cons.conf.idx, na.rm = TRUE))) +
+  labs(x = "cons.conf.idx", y = "Count", title = "Cons.conf.idx distribution") +   theme_economist()
+
+
+#Euribor3m distribution
+
+ggplot(data=bank,aes(x=bank$euribor3m)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$euribor3m, na.rm = TRUE), sd = sd(bank$euribor3m, na.rm = TRUE))) +
+  labs(x = "euribor3m", y = "Count", title = "Euribor3m distribution") +   theme_economist()
+
+
+#Nr.employed distribution
+
+ggplot(data=bank,aes(x=bank$nr.employed)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$nr.employed, na.rm = TRUE), sd = sd(bank$nr.employed, na.rm = TRUE))) +
+  labs(x = "nr.employed", y = "Count", title = "Nr.employed distribution") +   theme_economist()
+
+
+
 
 
 #checking for correlation Numerical variable vs response
@@ -126,12 +205,192 @@ PlotList <- lapply(ExplVar, function(x) PlotFunc(bank, x, y))
 plot_grid(plotlist = PlotList)
 
 
-bank.model<-lm(y~.,data=bank)  
-vif(bank.model)
 
-#Check for alias coeffiecient and drop them
-ld.vars <- attributes(alias(bank.model)$Complete)$dimnames[[1]]  
-ld.vars 
 ```
 
+
+This table shows the correlation between the numerical variables
+
+ - nr.employed and emp.var.rate are 91% correlated. 
+ - nr.employed and euribor3m are 95% correlated.
+ - emp.var.rate and euribor3m are 97% correlated.
+ - cons.price.idx and emp.var.rate are 78% correlated.
+ - cons.price.idx and euribor3m are 69% correlated.
+ - ons.price.idx and nr.employed are 52% correlated.
+ 
+```{r}
+
+
+corrdfTraintable <- bank %>% keep(is.numeric) %>% na.omit %>% cor %>% view
+bank %>% keep(is.numeric) %>% na.omit %>% cor %>% corrplot("upper", addCoef.col = "black", number.digits = 2, number.cex = 0.5, method="shade", order="hclust", tl.srt=45, tl.cex = 0.8)
+view(corrdfTraintable)
+
+pairs
+
+plot_correlation(bank, type ='continous', 'Review.Date')
+```
+
+
+
+Using the package SmartEda for data exploration
+
+- check out the distributiion of numerical variable and categorical variable.
+
+```{r}
+library("DataExplorer")
+library('SmartEDA')
+
+ExpData(data = bank, type = 1)
+
+BankPlot <- ExpNumViz(bank, target = NULL, nlim = 10, Page = c(3,3), sample = 9)
+
+BankPlotn <- ExpNumViz(bank, target = "y", nlim = 10, Page = c(3,3), sample = 9)
+
+Bankplot2 <- ExpCatViz(bank,target= "y",col ="slateblue4",clim=10,margin=2,Page = c(3,3),sample=9)
+
+
+pairs(bank[,c(1,11:14,16:20)], col = bank$y)
+
+cor(bank[,c(1,11:14,16:20)], col = bank$y)
+```
+
+Missing values are disguided as unknwown values in the data set and we devised a code to show them all
+
+ default           8597
+ education         1731
+ housing            990
+ loan               990
+ job                330
+ marital             80
+ 
+ For Marital, housing and job it is save to remove the unknow values as the so little they won't have an effect on the rest of the disrtibution
+ 
+ - Looking at default is has no information as it is highly skewed towards "no" as only 3 counts comes up as "yes" so we are removing "default" as well.
+ 
+ 
+ 
+ 
+```{r}
+bank %>% 
+  summarise_all(list(~sum(. == "unknown"))) %>% 
+  gather(key = "variable", value = "nr_unknown") %>% 
+  arrange(-nr_unknown)
+
+summary(bank$job)
+summary(bank$default)
+summary(bank$education)
+summary(bank$loan)
+summary(bank$marital)
+summary(bank$housing)
+
+bank <- subset(bank, job!="unknown")
+bank <- subset(bank, marital!="unknown")
+bank <- subset(bank, housing!="unknown")
+bank <- subset(bank, loan!="unknown")
+bank <- subset(bank, default!="unknown")
+bank <- subset(bank, education!="unknown")
+
+
+
+
+###cov.trob(bankbank[,c(1,11:14,16:20)])$cov
+```
+
+
+```{r}
+BankBoxPlot <- function(columnBy, columnToShow, columnByDesc, columnToShowDesc)
+{
+ggplot(bank, aes(x=bank[,columnBy], y=bank[,columnToShow])) + geom_boxplot() +
+    stat_summary(fun.y=mean, geom="point", shape=5, size=4) +
+  ggtitle(paste(columnByDesc, "by",columnToShowDesc)) + xlab("Outcome") + ylab(columnToShowDesc) +
+  theme_economist()
+}
+BankBoxPlot("y", "duration", "Outcome", "duration - Duration of Last Contact (secs)")
+BankBoxPlot("y", "campaign", "Outcome", "campaign - Number of Contacts During this Campaign")
+BankBoxPlot("y", "pdays", "Outcome", "pdays - Number of Days Since Previous Contact")
+BankBoxPlot("y", "previous", "Outcome", "previous - Previous Number of Contacts")
+NiceBoxPlot("y", "emp.var.rate", "Outcome", "emp.var.rate - Employment Variation Rate (quaterly indicator)")
+NiceBoxPlot("y", "cons.price.idx", "Outcome", "cons.price.idx - Consumer Price Index (montly indicator)")
+NiceBoxPlot("y", "cons.conf.idx", "Outcome", "cons.conf.idx - Consumer Confidence Index(monthly indicator)")
+NiceBoxPlot("y", "euribor3m", "Outcome", "euribor3m - eurobor 3 month rate")
+NiceBoxPlot("y", "nr.employed", "Outcome", "nr.employed - number of employees (quarterly indicator)")
+```
+
+```{r}
+
+library("dplyr")
+ShowPieChart <- function(columnBy, columnToShow, titleName)
+{
+  df <- dplyr::group_by(bank, .dots = c(columnBy, columnToShow)) %>%
+    dplyr::summarize(counts = n()) %>%
+    dplyr::mutate(perc = (counts / sum(counts)) * 100) %>%
+    dplyr::arrange_(.dots=c(columnBy, columnToShow))
+ 
+  
+  # preparing the plot
+  ggplot2::ggplot(df, aes('', counts)) +
+    geom_col(
+      position = 'fill',
+      color = 'black',
+      width = 1,
+      aes(fill = y)
+    ) +
+    ggtitle(titleName) +
+    facet_wrap(paste("~",columnBy), labeller = "label_both") +
+    geom_label(
+      aes(label = paste0(round(perc), "%"), group = "y"),
+      position = position_fill(vjust = 0.5),
+      color = 'black',
+      size = 5,
+      show.legend = FALSE
+    ) + scale_fill_discrete(name = "Outcome:") +
+    coord_polar(theta = "y")
+}
+ShowPieChart("job", "y", "Outcome by Job")
+ShowPieChart("marital", "y", "Outcome by Marital Status")
+ShowPieChart("education", "y", "Outcome by Education")
+ShowPieChart("housing", "y", "Outcome by Housing")
+ShowPieChart("default", "y", "Outcome by Credit In Default")
+ShowPieChart("loan", "y", "Outcome by loan status")
+ShowPieChart("contact", "y", "Outcome by Contact")
+ShowPieChart("poutcome", "y", "Outcome by poutcome")
+ 
+```
+
+
+
+```{r}
+
+
+## Check of the range of some of these continuous variables with histograms
+ 
+
+ggplot(data=bank,aes(x=duration)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$duration, na.rm = TRUE), sd = sd(bank$duration, na.rm = TRUE))) +
+  labs(x = "duration", y = "Count", title = "Distribution of duration") +   theme_economist()
+ggplot(data=bank,aes(x=bank$campaign)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$campaign, na.rm = TRUE), sd = sd(bank$campaign, na.rm = TRUE))) +
+  labs(x = "campaign", y = "Count", title = "Distribution of campaign") +   theme_economist()
+ggplot(data=bank,aes(x=bank$pdays)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$campaign, na.rm = TRUE), sd = sd(bank$campaign, na.rm = TRUE))) +
+  labs(x = "pdays", y = "Count", title = "Distribution of pdays") +   theme_economist()
+ggplot(data=bank,aes(x=bank$previous)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$previous, na.rm = TRUE), sd = sd(bank$campaign, na.rm = TRUE))) +
+  labs(x = "previous", y = "Count", title = "Distribution of previous") +   theme_economist()
+ggplot(data=bank,aes(x=bank$emp.var.rate)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$emp.var.rate, na.rm = TRUE), sd = sd(bank$emp.var.rate, na.rm = TRUE))) +
+  labs(x = "emp.var.rate", y = "Count", title = "Distribution of emp.var.rate") +   theme_economist()
+ggplot(data=bank,aes(x=bank$cons.price.idx)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$emp.var.rate, na.rm = TRUE), sd = sd(bank$cons.price.idx, na.rm = TRUE))) +
+  labs(x = "cons.price.idx", y = "Count", title = "Distribution of cons.price.idx") +   theme_economist()
+ggplot(data=bank,aes(x=bank$cons.conf.idx)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$cons.conf.idx, na.rm = TRUE), sd = sd(bank$cons.conf.idx, na.rm = TRUE))) +
+  labs(x = "cons.conf.idx", y = "Count", title = "Distribution of cons.conf.idx") +   theme_economist()
+ggplot(data=bank,aes(x=bank$euribor3m)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$euribor3m, na.rm = TRUE), sd = sd(bank$euribor3m, na.rm = TRUE))) +
+  labs(x = "euribor3m", y = "Count", title = "Distribution of euribor3m") +   theme_economist()
+ggplot(data=bank,aes(x=bank$nr.employed)) + geom_histogram() +
+  stat_function(fun = dnorm, args = list(mean = mean(bank$nr.employed, na.rm = TRUE), sd = sd(bank$nr.employed, na.rm = TRUE))) +
+  labs(x = "nr.employed", y = "Count", title = "Distribution of nr.employed") +   theme_economist()
+```
 
